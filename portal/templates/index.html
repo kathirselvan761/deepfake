@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deepfake Detection Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <div class="max-w-4xl mx-auto p-8">
+        <h1 class="text-4xl font-bold mb-2">🔍 Deepfake Detector</h1>
+        <p class="text-gray-400 mb-8">Upload image to verify authenticity</p>
+        
+        <div id="dropZone" 
+             class="border-2 border-dashed border-gray-600 rounded-lg p-12 text-center hover:border-blue-500 transition cursor-pointer">
+            <input type="file" id="fileInput" class="hidden" accept="image/*">
+            <p class="text-xl mb-2">📁 Drop image here or click to browse</p>
+            <p class="text-sm text-gray-500">Supports: JPG, PNG</p>
+        </div>
+        
+        <div id="preview" class="mt-6 hidden">
+            <img id="previewImg" class="max-h-64 rounded-lg mx-auto" />
+        </div>
+        
+        <button id="verifyBtn" 
+                class="mt-6 w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-lg font-semibold hidden">
+            Verify
+        </button>
+        
+        <div id="loading" class="mt-6 text-center hidden">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+            <p class="mt-2">Analyzing...</p>
+        </div>
+        
+        <div id="result" class="mt-6 hidden"></div>
+    </div>
+    
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const previewImg = document.getElementById('previewImg');
+        const verifyBtn = document.getElementById('verifyBtn');
+        const loading = document.getElementById('loading');
+        const result = document.getElementById('result');
+        
+        let selectedFile = null;
+        
+        dropZone.onclick = () => fileInput.click();
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('border-blue-500'); };
+        dropZone.ondragleave = () => dropZone.classList.remove('border-blue-500');
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-500');
+            handleFile(e.dataTransfer.files[0]);
+        };
+        
+        fileInput.onchange = (e) => handleFile(e.target.files[0]);
+        
+        function handleFile(file) {
+            if (!file) return;
+            selectedFile = file;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                preview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+            
+            verifyBtn.classList.remove('hidden');
+            result.classList.add('hidden');
+        }
+        
+        verifyBtn.onclick = async () => {
+            if (!selectedFile) return;
+            
+            loading.classList.remove('hidden');
+            verifyBtn.classList.add('hidden');
+            
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            
+            try {
+                const res = await fetch('/verify/image', { method: 'POST', body: formData });
+                const data = await res.json();
+                showResult(data);
+            } catch (err) {
+                result.innerHTML = `<p class="text-red-500">Error: ${err.message}</p>`;
+                result.classList.remove('hidden');
+            } finally {
+                loading.classList.add('hidden');
+                verifyBtn.classList.remove('hidden');
+            }
+        };
+        
+        function showResult(data) {
+            const colors = {
+                'DEEPFAKE': 'bg-red-900 border-red-500',
+                'SUSPICIOUS': 'bg-yellow-900 border-yellow-500',
+                'LIKELY REAL': 'bg-green-900 border-green-500'
+            };
+            const cls = colors[data.verdict] || 'bg-gray-800';
+            
+            result.innerHTML = `
+                <div class="border-2 ${cls} rounded-lg p-6">
+                    <h2 class="text-3xl font-bold mb-4">${data.verdict}</h2>
+                    
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-1">
+                            <span>Trust Score</span>
+                            <span class="font-bold">${data.trust_score}%</span>
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-3">
+                            <div class="bg-blue-500 h-3 rounded-full" 
+                                 style="width: ${data.trust_score}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <p class="text-sm text-gray-400">Visual Fake</p>
+                            <p class="text-xl font-bold">${(data.breakdown.visual*100).toFixed(1)}%</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-400">Confidence</p>
+                            <p class="text-xl font-bold">${data.confidence}%</p>
+                        </div>
+                    </div>
+                    
+                    <p class="text-sm italic mb-4">${data.explanation}</p>
+                    
+                    ${data.heatmap_url ? `
+                        <div>
+                            <p class="text-sm text-gray-400 mb-2">Manipulation Heatmap</p>
+                            <img src="${data.heatmap_url}" class="rounded-lg w-full">
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            result.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+# Coretorchtorchvisiontorchaudio# Image processingopencv-pythonpillownumpypandas# Deepfake detectionfacenet-pytorchgrad-camtransformers# Web portalfastapiuvicornpython-multipart# Evaluationscikit-learnmatplotlibseaborn# Utilitiestqdmkaggle

@@ -1,0 +1,41 @@
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Data (large files)
+data/
+uploads/
+outputs/
+
+# Model weights (large)
+*.pth
+*.pt
+*.ckpt
+
+# Archives
+*.zip
+*.tar.gz
+
+# Logs
+audit_log.json
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+*.kaggle-partial
